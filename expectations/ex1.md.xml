@@ -1,0 +1,8 @@
+<XMLtable><sheet><tree><title>The First Section</title><body>
+This is a section text.
+
+</body><tree><title>A Subsection</title><body>
+Texts can be <em>emphasized.</em>
+
+</body></tree><tree><title>Another Subsection</title><body>
+...</body></tree></tree></sheet></XMLtable>

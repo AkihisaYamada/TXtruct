@@ -1,0 +1,987 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<txtruct indent="no" method="html" omit-xml-declaration="no">
+
+<!-- TXtruct Format Description -->
+
+<input method="xml"/>
+
+<class name="print-regex" mode="out">
+	<element name="span">
+		<attribute name="class">regex</attribute>
+		<copy-of select="."/>
+	</element>
+</class>
+
+<class name="print-xpath" mode="out">
+	<element name="span">
+		<attribute name="class">xpath</attribute>
+		<copy-of select="."/>
+	</element>
+</class>
+
+<class name="print-comment" mode="out">
+	<element name="span">
+		<attribute name="class">comment</attribute>
+		<copy-of select="."/>
+	</element>
+</class>
+
+<class name="print-kw" mode="out">
+	<element name="span">
+		<attribute name="class">kw</attribute>
+		<copy-of select="."/>
+	</element>
+</class>
+
+<class name="print-const" mode="out">
+	<element name="span">
+		<attribute name="class">const</attribute>
+		<copy-of select="."/>
+	</element>
+</class>
+
+<class name="print-class" mode="out">
+	<element name="span">
+		<attribute name="class">class</attribute>
+		<copy-of select="."/>
+	</element>
+</class>
+
+<class name="print-attribute" mode="out">
+	<call ref="print-const" mode="out">
+		<copy-of select="."/>
+		<text>="</text>
+	</call>
+</class>
+
+<class name="name">
+	<match as="v" pattern="[A-Za-z_][0-9A-Za-z_\-]*">
+		<!-- Names of elements or attributes. -->
+	</match>
+	<value-of select="v/match"/>
+</class>
+
+<class name="method">
+	<match pattern="xml(-fragment)?|html(-fragment)?|text" as="v">
+		<!-- Input/Output method specification. -->
+	</match>
+	<value-of select="v/match"/>
+</class>
+
+<class name="occur-attributes">
+	<read-attribute name="maxOccurs" pattern="[0-9]+|unbounded" minOccurs="0" as="max">
+		<!-- Attribute for maximum occurrences. -->
+	</read-attribute>
+	<read-attribute name="minOccurs" pattern="[0-9]+" minOccurs="0" as="min">
+		<!-- Attribute for minimum occurrences. -->
+	</read-attribute>
+	<choose>
+		<when test="not(min) or min/match/text() = '1'">
+			<choose>
+				<when test="not(max) or max/match/text() = '1'">
+				</when>
+				<when test="max/match/text() = 'unbounded'">
+					<element name="sup">
+						<attribute name="class">kw</attribute>
+						<text>+</text>
+					</element>
+				</when>
+				<otherwise>
+					<element name="sup">
+						<attribute name="class">ctrl</attribute>
+						<text>{1..</text>
+						<value-of select="max/match"/>
+						<text>}</text>
+					</element>
+				</otherwise>
+			</choose>
+		</when>
+		<when test="min/match/text() = '0'">
+			<choose>
+				<when test="not(max) or max/match/text() = '1'">
+					<element name="sup">
+						<attribute name="class">ctrl</attribute>
+						<text>?</text>
+					</element>
+				</when>
+				<when test="max/match/text() = 'unbounded'">
+					<element name="span">
+						<attribute name="class">ctrl</attribute>
+						<text>*</text>
+					</element>
+				</when>
+				<otherwise>
+					<element name="sup">
+						<attribute name="class">ctrl</attribute>
+						<text>{0..</text>
+						<value-of select="max/match"/>
+						<text>}</text>
+					</element>
+				</otherwise>
+			</choose>
+		</when>
+		<otherwise>
+			<element name="sup">
+				<attribute name="class">ctrl</attribute>
+				<text>{</text>
+				<choose>
+					<when test="min">
+						<value-of select="min/match"/>
+					</when>
+					<otherwise>
+						<text>0</text>
+					</otherwise>
+				</choose>
+				<choose>
+					<when test="not(max) or max/match/text() = min/match/text()">
+					</when>
+					<otherwise>
+						<text>..</text>
+						<if test="max/match/text() != 'unbounded'">
+							<value-of select="max/match"/>
+						</if>
+					</otherwise>
+				</choose>
+				<text>}</text>
+			</element>
+		</otherwise>
+	</choose>
+</class>
+<class name="mode-attribute">
+	<read-attribute name="mode" pattern="in|out|io|dummy">
+		<!-- Attribute for prettyprinting the transformer input syntax. `out` and `dummy` calls will not be printed. -->
+	</read-attribute>
+	<value-of select="mode/match"/>
+</class>
+
+<class name="comment" mode="dummy">
+	<in-comment skipSpaces="yes">
+		<choice>
+			<group>
+				<match pattern="\s*@txtr:\s*"/><!-- Special comment for prettyprinting etc. -->
+				<choice>
+					<group>
+						<match pattern="epsilon"/>
+						<element name="li">
+							<call ref="print-kw" mode="out">ε</call>
+						</element>
+					</group>
+					<group>
+						<match pattern="attributes"/>
+						<element name="li">
+							<attribute name="class">txtr-attributes</attribute>
+						</element>
+					</group>
+					<group>
+						<match pattern="children"/>
+						<element name="li">
+							<attribute name="class">txtr-children</attribute>
+							<call ref="print-const" mode="out">></call>
+						</element>
+					</group>
+					<group>
+						<match pattern="silent-children"/>
+						<element name="li">
+							<attribute name="class">txtr-children</attribute>
+						</element>
+					</group>
+					<group>
+						<match pattern="close-leaf"/>
+						<element name="li">
+							<attribute name="class">txtr-close</attribute>
+							<call ref="print-const" mode="out">/></call>
+						</element>
+					</group>
+					<group>
+						<match pattern="close\s+([^\s]*)" as="it"/>
+						<element name="li">
+							<attribute name="class">txtr-close</attribute>
+							<call ref="print-const" mode="out">&lt;/<value-of select="it/group[1]"/>></call>
+						</element>
+					</group>
+					<group>
+						<match pattern="silent-close" as="it"/>
+						<element name="li">
+							<attribute name="class">txtr-close</attribute>
+						</element>
+					</group>
+				</choice>
+			</group>
+			<group>
+				<read-text as="cmt"/>
+				<call ref="print-comment" mode="out"><value-of select="cmt"/></call>
+			</group>
+		</choice>
+	</in-comment>
+</class>
+
+<class name="expression">
+	<option mode="out">
+		<call ref="comment"/>
+	</option>
+	<option>
+		<in-element name="in-element"><!-- Reads into an element. -->
+			<!-- @txtr: attributes -->
+			<read-attribute name="name" class="name" as="n">
+				<!-- The tag name of the element. -->
+			</read-attribute>
+			<call ref="occur-attributes" as="occurs"/>
+			<read-attribute name="as" class="name" minOccurs="0">
+				<!-- Gives a name to the process result. -->
+			</read-attribute>
+			<!-- @txtr: children -->
+			<call ref="comment" minOccurs="0" as="cmt" mode="dummy"/>
+			<call ref="expression" minOccurs="0" maxOccurs="unbounded" as="inner">
+				<!-- Processor sequence applied on the attributes or content of the element. -->
+			</call>
+			<element name="li">
+				<choose>
+					<when test="inner">
+						<element name="span">
+							<attribute name="class">ll</attribute>
+							<choose>
+								<when test="cmt/*[@class='txtr-attributes'] or inner/*[@class='txtr-attributes']">
+									<call ref="print-const" mode="out">&lt;<value-of select="n"/></call>
+								</when>
+								<otherwise>
+									<call ref="print-const" mode="out">&lt;<value-of select="n"/>></call>
+								</otherwise>
+							</choose>
+							<if test="cmt/*[@class!='txtr-attributes']">
+								<value-of select="cmt"/>
+							</if>
+						</element>
+						<element name="ul">
+							<attribute name="class">
+								<text>inner</text>
+							</attribute>
+							<value-of select="inner"/>
+						</element>
+						<choose>
+							<when test="inner/*[@class='txtr-close']">
+							</when>
+							<when test="(cmt/*[@class='txtr-attributes'] or inner/*[@class='txtr-attributes']) and not(inner/*[@class='txtr-children'])">
+								<call ref="print-const" mode="out">/></call>
+							</when>
+							<otherwise>
+								<call ref="print-const" mode="out">&lt;/<value-of select="n"/>></call>
+							</otherwise>
+						</choose>
+					</when>
+					<otherwise>
+						<element name="span">
+							<attribute name="class">ll</attribute>
+							<call ref="print-const" mode="out">&lt;<value-of select="n"/>/></call>
+							<if test="cmt/*[@class!='txtr-attributes']">
+								<value-of select="cmt"/>
+							</if>
+						</element>
+					</otherwise>
+				</choose>
+				<value-of select="occurs"/>
+			</element>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="read-element"><!-- Reads an element, without processing its content. -->
+			<!-- @txtr: attributes -->
+			<read-attribute name="name" class="name" as="n"/>
+			<call ref="occur-attributes" as="occurs"/>
+			<read-attribute name="as" class="name" minOccurs="0">
+				<!-- Names a variable containing the content of the element. It can be accessed e.g. via <value-of select="xxx"/>. -->
+			</read-attribute>
+			<element name="li">
+				<call ref="print-const" mode="out">&lt;<value-of select="n"/></call>
+				<text>...</text>
+				<call ref="print-const" mode="out">></call>
+				<text>...</text>
+				<call ref="print-const" mode="out">&lt;/<value-of select="n"/>></call>
+				<value-of select="occurs"/>
+			</element>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="in-comment"><!-- Reads into a comment and processes the content. This expression must be tested before expressions that read texts or elements. -->
+			<!-- @txtr: attributes -->
+			<read-attribute name="skipSpaces" pattern="yes|no">
+				<!-- Allows skipping spaces before the comment. -->
+			</read-attribute>
+			<call ref="occur-attributes" as="occurs"/>
+			<read-attribute name="as" class="name" minOccurs="0"/>
+			<!-- @txtr: children -->
+			<element name="li">
+				<call ref="print-const" mode="out">&lt;!--</call>
+				<value-of select="occurs"/>
+				<element name="ul">
+					<attribute name="class">inner</attribute>
+					<call ref="expression" minOccurs="0" maxOccurs="unbounded">
+						<!-- Expression that processes the comment text. -->
+					</call>
+				</element>
+				<call ref="print-const" mode="out">--></call>
+			</element>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="read-comment"><!-- Reads a comment node, without processing its content. This expression must be tested before expressions that read texts or elements. -->
+			<!-- @txtr: attributes -->
+			<read-attribute name="skipSpaces" pattern="yes|no">
+				<!-- Allows skipping spaces before the comment. -->
+			</read-attribute>
+			<call ref="occur-attributes" as="occurs"/>
+			<call ref="mode-attribute" as="mode" minOccurs="0"/>
+			<read-attribute name="as" class="name" minOccurs="0">
+				<!-- Names the variable containing the comment text. -->
+			</read-attribute>
+			<if test="mode and mode/text() != 'out'">
+				<element name="li">
+					<attribute name="class">ll</attribute>
+					<element name="span">
+						<if test="occurs/node()">(</if>
+						<call ref="print-const" mode="out">&lt;!--</call>
+						<call ref="print-kw" mode="out">text</call>
+						<call ref="print-const" mode="out">--></call>
+						<if test="occurs/node()">
+							<text>)</text>
+							<value-of select="occurs"/>
+						</if>
+					</element>
+					<if test="cmt">
+						<call ref="print-comment" mode="out"><value-of select="cmt"/></call>
+					</if>
+				</element>
+			</if>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="read-text"><!-- Reads any text. -->
+			<!-- @txtr: attributes -->
+			<read-attribute name="minOccurs" pattern="0|1" minOccurs="0"/>
+			<read-attribute name="as" class="name" minOccurs="0"/>
+			<read-comment minOccurs="0" as="cmt" skipSpaces="yes"/>
+			<element name="li">
+				<call ref="print-kw" mode="out">text</call>
+				<if test="cmt">
+					<call ref="print-comment" mode="out"><value-of select="cmt"/></call>
+				</if>
+			</element>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="match"><!-- Reads matching text. -->
+			<!-- @txtr: attributes -->
+			<call ref="occur-attributes" as="occurs"/>
+			<read-attribute name="as" class="name" minOccurs="0" as="as">
+				<!-- Names the match result. When this value is `v`, `v/match` contains the whole matched string, and `v/group[i]` contains the substring that the `i`th group of the regular expression matches. -->
+			</read-attribute>
+			<read-attribute name="sensitive" pattern="yes|no" minOccurs="0" as="sens">
+				<!-- Specifies if the grammer depends on the match result, i.e., context sensitive. -->
+			</read-attribute>
+			<choice>
+				<group>
+					<read-attribute name="pattern" as="p"/>
+					<!-- @txtr: close-leaf -->
+					<read-comment minOccurs="0" as="cmt" skipSpaces="yes"/>
+				</group>
+				<group as="exp">
+					<!-- @txtr: children -->
+					<read-comment minOccurs="0" as="cmt" skipSpaces="yes"/>
+					<call ref="expression" minOccurs="1" maxOccurs="unbounded">
+						<!-- Processor sequence to produce the pattern. -->
+						<element name="mode">io</element>
+					</call>
+					<!-- @txtr: close match -->
+				</group>
+			</choice>
+			<!-- @txtr: silent-close -->
+		</in-element>
+		<element name="li">
+			<if test="occurs/node()">(</if>
+			<choose>
+				<when test="p">
+					<call ref="print-regex" mode="out">
+						<value-of select="p"/>
+					</call>
+				</when>
+				<otherwise>
+					<value-of select="exp"/>
+				</otherwise>
+			</choose>
+			<if test="sens and sens/match/text() = 'yes'">
+				<text>(as </text>
+				<call ref="print-xpath" mode="out"><value-of select="as"/></call>
+				<text>)</text>
+			</if>
+			<if test="occurs/node()">
+				<text>)</text>
+				<value-of select="occurs"/>
+			</if>
+			<if test="cmt">
+				<call ref="print-comment" mode="out"><value-of select="cmt"/></call>
+			</if>
+		</element>
+	</option>
+	<option>
+		<in-element name="read-any"><!-- Reads any text or element. -->
+			<!-- @txtr: attributes -->
+			<call ref="occur-attributes" as="occurs"/>
+			<read-attribute name="as" class="name" minOccurs="0">
+				<!-- Names the read node. --> 
+			</read-attribute>
+			<element name="li">
+				<text>any</text>
+				<value-of select="occurs"/>
+			</element>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="read-attribute"><!-- Reads an attribute of the specified name. -->
+			<!-- @txtr: attributes -->
+			<read-attribute name="name" class="name" as="n"/>
+			<choice minOccurs="0">
+				<read-attribute name="pattern" as="p">
+					<!-- Regular expression the entire attribute value should match. The result is as specified in `match` element. -->
+				</read-attribute>
+				<read-attribute name="class" class="name" as="c">
+					<!-- The class the attribute value is processed. -->
+				</read-attribute>
+			</choice>
+			<read-attribute name="minOccurs" pattern="0|1" minOccurs="0"/>
+			<read-attribute name="as" class="name" minOccurs="0">
+				<!-- Names the attribute value. If omited, the value of `name` attribute will be used. -->
+			</read-attribute>
+			<read-comment minOccurs="0" as="cmt" skipSpaces="yes"/>
+			<element name="li">
+				<element name="span">
+					<attribute name="class">ll</attribute>
+					<element name="span">
+						<if test="minOccurs and minOccurs/match/text() = '0'">
+							<text>(</text>
+						</if>
+						<call ref="print-attribute" mode="out">
+							<value-of select="n"/>
+						</call>
+						<choose>
+							<when test="p">
+								<call ref="print-regex" mode="out">
+									<value-of select="p"/>
+								</call>
+							</when>
+							<when test="c">
+								<call ref="print-class" mode="out">
+									<value-of select="c"/>
+								</call>
+							</when>
+							<otherwise>
+								<call ref="print-kw" mode="out">text</call>
+							</otherwise>
+						</choose>
+						<call ref="print-const" mode="out">"</call>
+						<if test="minOccurs and minOccurs/match/text() = '0'">
+							<text>)</text>
+							<element name="sup">
+								<attribute name="class">ctrl</attribute>
+								<text>?</text>
+							</element>
+						</if>
+					</element>
+					<if test="cmt">
+						<call ref="print-comment" mode="out"><value-of select="cmt"/></call>
+					</if>
+				</element>
+			</element>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="call"><!-- Calls a class. -->
+			<!-- @txtr: attributes -->
+			<read-attribute name="ref" class="name" as="ref">
+				<!-- The name of the class. -->
+			</read-attribute>
+			<read-attribute name="level" pattern="[0-9]+" minOccurs="0" as="lvl">
+				<!-- Options above the specified level will be considered. -->
+			</read-attribute>
+			<call ref="occur-attributes" as="occurs"/>
+			<read-attribute name="as" class="name" minOccurs="0"/>
+			<call ref="mode-attribute" minOccurs="0" as="mode2"/>
+			<!-- @txtr: children -->
+			<read-comment minOccurs="0" as="cmt" skipSpaces="yes"/>
+			<if test="not(mode2) or (mode2/text() != out and mode2/text() != dummy)">
+				<element name="li">
+					<element name="span">
+						<if test="cmt">
+							<attribute name="class">ll</attribute>
+						</if>
+						<element name="span">
+							<call ref="print-class" mode="out"><value-of select="ref"/></call>
+							<if test="lvl">
+								<text> (level </text>
+								<value-of select="lvl/match"/>
+								<text>)</text>
+							</if>
+							<value-of select="occurs"/>
+						</element>
+						<if test="cmt">
+							<call ref="print-comment" mode="out"><value-of select="cmt"/></call>
+						</if>
+					</element>
+				</element>
+			</if>
+			<call ref="expression" minOccurs="0" maxOccurs="unbounded" as="args">
+				<!-- Processors for building arguments. -->
+			</call>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="group"><!-- Builds a processor sequence. -->
+			<!-- @txtr: attributes -->
+			<call ref="occur-attributes" as="occurs"/>
+			<read-attribute name="as" class="name" minOccurs="0"/>
+			<!-- @txtr: children -->
+			<element name="li">
+				<element name="ul">
+					<if test="occurs/node()">
+						<attribute name="class">paren</attribute>
+					</if>
+					<call ref="expression" minOccurs="0" maxOccurs="unbounded"/>
+				</element>
+					<if test="occurs/node()">
+						<text>)</text>
+						<value-of select="occurs"/>
+					</if>
+			</element>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="choice"><!-- Disjunctive processor. -->
+			<!-- @txtr: attributes -->
+			<call ref="occur-attributes" as="occurs"/>
+			<!-- @txtr: children -->
+			<element name="li">
+				<element name="ul">
+					<attribute name="class">paren choice</attribute>
+					<call ref="expression" minOccurs="0" maxOccurs="unbounded">
+						<!-- Options. The options are tested in the order given here, until one proceeds. -->
+					</call>
+				</element>
+				<text>)</text><value-of select="occurs"/>
+			</element>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="if"><!-- Conditional processing. -->
+			<!-- @txtr: attributes -->
+			<read-attribute name="test" as="t">
+				<!-- Condition in an XPath expression. -->
+			</read-attribute>
+			<call ref="mode-attribute" minOccurs="0" as="mode"/>
+			<!-- @txtr: children -->
+			<call ref="expression" minOccurs="0" maxOccurs="unbounded" as="body">
+				<!-- The processor sequence applied when the condition holds. -->
+			</call>
+			<if test="mode and mode/text() != 'out' and mode/text() != 'dummy'">
+				<element name="li">
+					<text>if </text>
+					<call ref="print-xpath">
+						<value-of select="t"/>
+					</call>
+					<text> (</text>
+					<element name="ul">
+						<attribute name="class">inner</attribute>
+						<value-of select="body"/>
+					</element>
+					<text>)</text>
+				</element>
+			</if>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="choose"><!-- Conditional branching. -->
+			<in-element name="when" maxOccurs="unbounded">
+				<!-- The list of conditioned branches. The first branch whose condition holds is processed. -->
+				<!-- @txtr: attributes -->
+				<read-attribute name="test">
+					<!-- The condition of the branch in an XPath expression. -->
+				</read-attribute>
+				<!-- @txtr: children -->
+				<call ref="expression" minOccurs="0" maxOccurs="unbounded">
+					<!-- Processor sequence of the branch. -->
+				</call>
+			</in-element>
+			<in-element name="otherwise">
+				<!-- The processor sequence applied none of the `when` conditions apply. -->
+				<call ref="expression" minOccurs="0" maxOccurs="unbounded"/>
+			</in-element>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="cascade"><!-- Cascade processors. -->
+			<!-- @txtr: attributes -->
+			<call ref="occur-attributes"/>
+			<!-- @txtr: children -->
+			<call ref="expression" minOccurs="2" maxOccurs="unbounded">
+			</call>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="value-of"><!-- Writes the value of an XPath expression. -->
+			<!-- @txtr: attributes -->
+			<read-attribute name="select" as="e">
+				<!-- The XPath expression. -->
+			</read-attribute>
+			<if test="mode and mode/text() != 'in'">
+				<text>(value-of </text>
+				<call ref="print-xpath" mode="out">
+					<value-of select="e"/>
+				</call>
+				<text>)</text>
+			</if>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="copy-of"><!-- Writes the copy of an XPath expression. -->
+			<!-- @txtr: attributes -->
+			<read-attribute name="select" as="e">
+				<!-- The XPath expression. -->
+			</read-attribute>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="element"><!-- Writes an element. -->
+			<!-- @txtr: attributes -->
+			<choice>
+				<group>
+					<read-attribute name="name" class="name">
+						<!-- The name of the element. -->
+					</read-attribute>
+					<!-- @txtr: children -->
+				</group>
+				<group>
+					<!-- @txtr: children -->
+					<in-element name="name">
+						<call ref="expression" minOccurs="0" maxOccurs="unbounded">
+							<!-- Processors that produce the name of the element. -->
+						</call>
+					</in-element>
+				</group>
+			</choice>
+			<!-- @txtr: silent-children -->
+			<call ref="expression" minOccurs="0" maxOccurs="unbounded">
+				<!-- Processors that produce the content of the element. -->
+			</call>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="text"><!-- Writes a text content. -->
+			<read-text as="val"/>
+			<if test="mode and mode/text() != 'in'">
+				<call ref="print-regex" mode="out">
+					<value-of select="val"/>
+				</call>
+			</if>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="attribute"><!-- Writes an attribute. -->
+			<!-- @txtr:attributes -->
+			<choice>
+				<group>
+					<read-attribute name="name" class="name"/>
+					<!-- @txtr:children -->
+				</group>
+				<group>
+					<!-- @txtr:children -->
+					<in-element name="name">
+						<call ref="expression" minOccurs="0" maxOccurs="unbounded">
+							<!-- Processors to produce the attribute name. -->
+						</call>
+					</in-element>
+				</group>
+			</choice>
+			<!-- @txtr:silent-children -->
+			<call ref="expression" minOccurs="0" maxOccurs="unbounded"/>
+		</in-element>
+	</option>
+	<option>
+		<in-element name="comment"><!-- Writes a comment. -->
+			<call ref="expression" minOccurs="0" maxOccurs="unbounded">
+				<!-- processors to produce comment. -->
+			</call>
+		</in-element>
+	</option>
+	<option><!-- Direct appearence of text means that the text is written. -->
+		<read-text as="val"/>
+		<if test="mode and mode/text() != 'in'">
+			<call ref="print-regex" mode="out">
+				<value-of select="val"/>
+			</call>
+		</if>
+	</option>
+</class>
+
+<class name="option">
+	<in-element name="option">
+		<!-- Represents an option a class can take. -->
+		<!-- @txtr: attributes -->
+		<read-attribute name="level" pattern="[0-9]+" minOccurs="0" as="level">
+			<!-- The option will be available for the class in levels less or equal to this value. -->
+		</read-attribute>
+		<call ref="mode-attribute" minOccurs="0" as="mode" mode="out"/>
+		<!-- @txtr: children -->
+		<call ref="expression" minOccurs="0" maxOccurs="unbounded" as="inner">
+			<!-- Content of the option. -->
+		</call>
+		<if test="not(mode) or mode/text() != 'out'">
+			<element name="li">
+				<if test="level">
+					<text>(level </text>
+					<value-of select="level/match"/>
+					<text>) </text>
+				</if>
+				<if test="cmt">
+					<call ref="print-comment" mode="out"><value-of select="cmt"/></call>
+				</if>
+				<element name="ul">
+					<value-of select="inner"/>
+				</element>
+			</element>
+		</if>
+	</in-element>
+</class>
+<class name="class-declaration">
+	<in-element name="class">
+		<!-- @txtr: attributes -->
+		<read-attribute name="name" class="name" as="n"/>
+		<call ref="mode-attribute" mode="out" minOccurs="0" as="mode"/>
+		<!-- @txtr: children -->
+		<read-comment minOccurs="0" as="cmt" skipSpaces="yes"/>
+		<choice>
+			<group as="options">
+				<call ref="option" maxOccurs="unbounded">
+					<!-- A class may have multiple options. -->
+				</call>
+			</group>
+			<group as="inner">
+				<call ref="expression" minOccurs="0" maxOccurs="unbounded">
+					<!-- If there is only one option, one can directly define of the class. -->
+				</call>
+			</group>
+		</choice>
+		<if test="not(mode) or mode/match/text() != 'out'">
+			<element name="table">
+				<attribute name="class">class</attribute>
+				<element name="tr">
+					<element name="th">
+						<attribute name="class">class-header</attribute>
+						<call ref="print-class" mode="out">
+							<value-of select="n"/>
+						</call>
+					</element>
+					<element name="td">
+						<if test="cmt">
+							<call ref="print-comment" mode="out"><value-of select="cmt"/></call>
+						</if>
+						<element name="ul">
+							<attribute name="class">class</attribute>
+							<choose>
+								<when test="options">
+									<value-of select="options"/>
+								</when>
+								<otherwise>
+									<element name="li">
+										<element name="ul">
+											<value-of select="inner"/>
+										</element>
+									</element>
+								</otherwise>
+							</choose>
+						</element>
+					</element>
+				</element>
+			</element>
+		</if>
+	</in-element>
+</class>
+
+<in-element name="txtruct">
+	<!-- @txtr: attributes -->
+	<read-attribute name="method" class="method" minOccurs="0"><!-- specifies output method. --></read-attribute>
+	<read-attribute name="indent" pattern="yes|no" minOccurs="0"><!-- controls if the output is indented or not. -->
+	</read-attribute>
+	<!-- @txtr: children -->
+	<read-comment minOccurs="0" as="d" skipSpaces="yes"/>
+	<if test="not(d)">
+		<text as="d">Untitled TXtruct Transformer</text>
+	</if>
+	<element name="html">
+		<element name="head">
+			<element name="title">
+				<value-of select="d"/>
+			</element>
+			<element name="style">
+				body { font: Georgia, serif; }
+				ul { list-style: none; margin: 0; padding: 0; }
+				div.class {
+					margin-bottom: 1ex;
+				}
+				div.class>ul {
+					vertical-align: text-top;
+				}
+				li { padding: 0; margin: 0; min-height: 3ex; }
+				li:empty { display: none; }
+				.ll { display: flex; align-items: baseline; }
+				.ll>span:first-child { white-space: pre; }
+				.comment {
+					color: #208020;
+					font-size: medium;
+					font-weight: normal;
+					position: relative;
+					padding-left: 12pt;
+				}
+				.comment::before {
+					position: absolute;
+					left: 0;
+					content: '/*';
+				}
+				.comment::after {
+					content: '*/';
+				}
+				span.comment:not(:first-child) { margin-left: 1em; }
+				table { vertical-align: text-top; }
+				th { vertical-align: text-top; }
+				ul.class>li {
+					display: list-item;
+				}
+				ul.class>li:first-of-type {
+					margin-left: 15pt;
+					padding-left: 6pt;
+				}
+				ul.class>li:first-of-type::marker {
+					content: '::=';
+					color: #0000D0;
+					font-weight: bold;
+				}
+				ul.class>li:not(:first-of-type) {
+					margin-left: 10pt;
+					padding-left: 10pt;
+				}
+				ul.class>li:not(:first-of-type)::marker {
+					content: '|';
+					font-size: 120%;
+					color: #0000D0;
+					font-weight: bold;
+				}
+				ul.paren>li:first-of-type {
+					margin-left: 5pt;
+					padding-left: 5pt;
+				}
+				ul.paren>li:first-of-type::marker {
+					content: '(';
+				}
+				ul.paren>li:not(:first-of-type) {
+					margin-left: 10pt;
+				}
+				ul.choice>li:not(:first-of-type) {
+					margin-left: 5pt;
+					padding-left: 5pt;
+				}
+				ul.choice>li:not(:first-of-type)::marker {
+					content: '|';
+					font-size: 110%;
+					color: #0000D0;
+					font-weight: bold;
+				}
+				ul.inner>li { margin-left: 20pt; }
+				ul.inline, ul.inline ul {
+					display: inline;
+				}
+				ul.inline li {
+					display: inline;
+					margin-left: 2pt;
+					padding-left: 0pt;
+				}
+				ul.inner>li.txtr-children, ul.inner>li.txtr-close { margin-left: 0; }
+				.ctrl {
+					color: #0000D0;
+					font-weight: bold;
+				}
+				.kw {
+					color: #0000D0;
+					font-weight: bold;
+					font-style: italic;
+				}
+				.regex {
+					font-family: monospace;
+					white-space:pre;
+					margin:1pt;
+					padding: 2pt;
+					background-color: #E0E0FF;
+				}
+				.xpath {
+					font-family: monospace;
+					white-space:pre;
+					margin:1pt;
+					padding: 2pt;
+					background-color: #C0FFFF;
+				}
+				.const {
+					font-family: monospace;
+					background-color: #E0E0E0;
+					margin:1pt;
+					padding:2pt;
+					white-space:pre;
+				}
+				span.class {
+					font-style: italic;
+					font-weight: bold;
+					padding: 2pt;
+				}
+				.comment { display: inline-block; }
+			</element>
+		</element>
+		<element name="body">
+			<element name="h1">
+				<value-of select="d"/>
+			</element>
+			<in-element name="input" minOccurs="0">
+				<!-- Specifies the input format. -->
+				<!-- @txtr: attributes -->
+				<read-attribute name="method" class="method" as="method"/>
+				<element name="p">
+					<text>Input method is </text>
+					<choose>
+						<when test="method='xml'">XML</when>
+						<when test="method='html-fragment'">HTML fragment</when>
+						<when test="method='html'">HTML</when>
+						<when test="method='text'">text</when>
+						<otherwise>XML fragment</otherwise>
+					</choose>
+					<text>.</text>
+				</element>
+			</in-element>
+			<call ref="class-declaration" minOccurs="0" maxOccurs="unbounded"/>
+			<element name="table">
+				<attribute name="class">class</attribute>
+				<element name="tr">
+					<element name="th">
+						<attribute name="class">class-header</attribute>
+						<call ref="print-kw" mode="out">root </call>
+					</element>
+					<element name="td">
+						<element name="ul">
+							<attribute name="class">class</attribute>
+							<element name="li">
+								<element name="ul">
+									<call ref="expression" minOccurs="0" maxOccurs="unbounded"/>
+								</element>
+							</element>
+						</element>
+					</element>
+				</element>
+			</element>
+		</element>
+	</element>
+</in-element>
+
+
+</txtruct>

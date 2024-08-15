@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<txtruct method="xml" indent="no">
+<input method="html-fragment"/>
+
+<class name="section">
+	<option level="1">
+		<match pattern="# "/>
+		<element name="tree">
+			<call ref="section-body"/>
+			<call ref="section" level="2" minOccurs="0" maxOccurs="unbounded"/>
+		</element>
+	</option>
+	<option level="2">
+		<match pattern="## "/>
+		<element name="tree">
+			<call ref="section-body"/>
+			<call ref="section" level="3" minOccurs="0" maxOccurs="unbounded"/>
+		</element>
+	</option>
+</class>
+
+<class name="section-body">
+	<element name="title">
+		<call ref="line"/>
+		<match pattern="\n"/>
+	</element>
+	<element name="body">
+		<call ref="lines"/>
+	</element>
+</class>
+
+<class name="line">
+	<option>
+		<match pattern="[^#\n\r][^\n\r]*" as="it"/>
+		<value-of select="it/match"/>
+		<call ref="line"/>
+	</option>
+	<option>
+		<call ref="html-element"/>
+		<call ref="line"/>
+	</option>
+	<option>
+		<!-- @txtr: epsilon -->
+	</option>
+</class>
+
+<class name="lines">
+	<option>
+		<call ref="line"/>
+		<choice>
+			<group>
+				<match pattern="\n"/>
+				<text>
+</text>
+				<call ref="lines"/>
+			</group>
+			<group/>
+		</choice>
+	</option>
+	<option/>
+</class>
+
+<class name="html-element">
+	<option>
+		<in-element name="br"/>
+		<element name="br"/>
+	</option>
+	<option>
+		<in-element name="em">
+			<element name="em">
+				<call ref="lines"/>
+			</element>
+		</in-element>
+	</option>
+</class>
+
+<element name="XMLtable">
+	<element name="sheet">
+		<call ref="section" maxOccurs="unbounded" level="0"/>
+	</element>
+</element>
+
+</txtruct>
