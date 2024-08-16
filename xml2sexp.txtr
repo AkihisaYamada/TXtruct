@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<txtruct method="text">
+	<!-- A simple XML to S-expression converter -->
+	<input method="text"/>
+	<class name="escape">
+		<option>
+			<match pattern="&amp;([^;]+);" as="it"/>
+			<choose>
+				<when test="it/group[1] = 'lt'">
+					<text>&lt;</text>
+				</when>
+				<when test="it/group[1] = 'amp'">
+					<text>&amp;</text>
+				</when>
+				<when test="it/group[1] = 'quot'">
+					<text>\&quot;</text>
+				</when>
+				<otherwise>
+					<value-of select="it/group[1]"/>
+				</otherwise>
+			</choose>
+		</option>
+		<option>
+			<match pattern="\\"/>
+			<text>\\</text>
+		</option>
+		<option>
+			<match pattern="[^&lt;&amp;&quot;\\]+" as="it"/>
+			<value-of select="it/match"/>
+		</option>
+		<option level="1">
+			<match pattern="&quot;"/>
+			<text>\&quot;</text>
+		</option>
+	</class>
+	<class name="name">
+		<match pattern="[A-Za-z_][0-9A-Za-z_\-]*" as="it"/>
+		<match pattern="\s*"/>
+		<value-of select="it/match"/>
+	</class>
+	<class name="attribute">
+		<call ref="name" as="name"/>
+		<text> :</text>
+		<value-of select="name"/>
+		<match pattern="=&quot;"/>
+		<text> "</text>
+		<call ref="escape" minOccurs="0" maxOccurs="unbounded"/>
+		<match pattern="&quot;\s*"/>
+		<text>"</text>
+	</class>
+	<class name="comment-more">
+		<option>
+			<match pattern="\n"/>
+			<text>
+;</text>
+			<match pattern="([^-\n]|-(?!->))*" as="it"/>
+			<value-of select="it/match"/>
+			<call ref="comment-more"/>
+		</option>
+		<option>
+			<match pattern="-->"/>
+			<text>
+</text>
+		</option>
+	</class>
+	<class name="comment">
+		<match pattern="&lt;!--"/>
+		<match pattern="([^-\n]|-(?!->))*" as="it"/>
+		<text>;</text>
+		<value-of select="it/match"/>
+		<call ref="comment-more"/>
+	</class>
+	<class name="exp">
+		<option>
+			<call ref="comment"/>
+		</option>
+		<option>
+			<match pattern="&lt;(?![/-])"/>
+			<text>(</text>
+			<call ref="name"/>
+			<match pattern="\s*"/>
+			<call ref="attribute" minOccurs="0" maxOccurs="unbounded"/>
+			<choice>
+				<match pattern="/>"/>
+				<group>
+					<match pattern=">"/>
+					<text> </text>
+					<call ref="exp" minOccurs="0" maxOccurs="unbounded"/>
+					<match pattern="&lt;/[^>]*>"/>
+				</group>
+			</choice>
+			<text>)</text>
+		</option>
+		<option>
+			<match pattern="\s+" as="it"/>
+			<value-of select="it/match"/>
+		</option>
+		<option>
+			<call ref="escape" level="0" as="it"/>
+			<text>"</text>
+			<value-of select="it"/>
+			<call ref="escape" level="0" minOccurs="0" maxOccurs="unbounded"/>
+			<text>"</text>
+		</option>
+	</class>
+	<match pattern="&lt;\?[^?]*\?>" minOccurs="0"/>
+	<call ref="exp" minOccurs="0" maxOccurs="unbounded"/>
+</txtruct>

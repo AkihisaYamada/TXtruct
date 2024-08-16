@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<txtruct method="xml-fragment" indent="no">
+	<!-- A simple S-expression to XML converter -->
+	<input method="text"/>
+	<class name="name">
+		<match pattern="([A-Za-z_][0-9A-Za-z_\-]*)" as="it"/>
+		<value-of select="it/group[1]"/>
+	</class>
+	<class name="comment">
+		<match pattern=";([^\n]*)\n" as="it"/>
+		<comment><value-of select="it/group[1]"/></comment>
+	</class>
+	<class name="blanks">
+		<option>
+			<call ref="comment"/>
+			<call ref="blanks"/>
+		</option>
+		<option>
+			<match pattern="\s+" as="it"/>
+			<value-of select="it/match"/>
+			<call ref="blanks"/>
+		</option>
+		<option/>
+	</class>
+	<class name="attribute">
+		<match pattern=":"/>
+		<call ref="name" as="name"/>
+		<match pattern="\s*"/>
+		<attribute>
+			<name><value-of select="name"/></name>
+			<call ref="exp"/>
+		</attribute>
+		<match pattern=" ?"/>
+	</class>
+	<class name="char">
+		<option>
+			<match pattern="\\(.)" as="it"/>
+			<value-of select="it/group[1]"/>
+		</option>
+		<option>
+			<match pattern="[^&quot;\\]+" as="it"/>
+			<value-of select="it/match"/>
+		</option>
+	</class>
+	<class name="exp">
+		<option>
+			<match pattern="\("/>
+			<element>
+				<name><call ref="name"/></name>
+				<match pattern=" ?"/>
+				<call ref="attribute" minOccurs="0" maxOccurs="unbounded"/>
+				<call ref="blanks"/>
+				<call ref="exps"/>
+				<call ref="attribute" minOccurs="0" maxOccurs="unbounded"/>
+			</element>
+			<match pattern="\)"/>
+		</option>
+		<option>
+			<match pattern="&quot;"/>
+			<call ref="char" minOccurs="0" maxOccurs="unbounded"/>
+			<match pattern="&quot;"/>
+		</option>
+		<option>
+			<match pattern="[^():&quot;;\s]+" as="it"/>
+			<value-of select="it/match"/>
+		</option>
+	</class>
+	<class name="exps">
+		<group minOccurs="0" maxOccurs="unbounded">
+			<call ref="exp"/>
+			<call ref="blanks"/>
+		</group>
+	</class>
+
+	<call ref="blanks"/>
+	<call ref="exps"/>
+</txtruct>
