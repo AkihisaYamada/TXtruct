@@ -1191,7 +1191,9 @@ public class TXtruct extends XML.ToNode {
 	public TXtruct(FileInputStream txtr, String dir) throws IOException, SAXException {
 		readTXtr( XML.parse(txtr), dir );
 	}
-	
+	public TXtruct(Node node, String dir) throws IOException, SAXException {
+		readTXtr(node,dir);
+	}
 	private static void error(String msg) {
 		// System.err.println(msg);
 		System.exit(-1);
@@ -1259,7 +1261,8 @@ public class TXtruct extends XML.ToNode {
 		FileInputStream parserFile = null;
 		InputStream inFile = System.in;
 		String outFileName = null;
-		
+		boolean sexp = false;
+
 		for( int i = 0; i < args.length; i++ ) {
 			switch( args[i] ) {
 			case "-v":
@@ -1276,6 +1279,7 @@ public class TXtruct extends XML.ToNode {
 			default:
 				if( parserFile == null ) {
 					parserFile = new FileInputStream(args[i]);
+					sexp = args[i].matches(".*\\.txtrs");
 				} else if( inFile == System.in ) {
 					inFile = new FileInputStream(args[i]);
 				} else if( outFileName == null ) {
@@ -1289,7 +1293,13 @@ public class TXtruct extends XML.ToNode {
 		if( parserFile == null ) {
 			error("parser file not specified");
 		}
-		TXtruct txtr = new TXtruct(parserFile,"");
+		TXtruct txtr;
+		if( sexp ) {
+			TXtruct s2x = new TXtruct(new FileInputStream("sexp2xml.txtr"),"");
+			txtr = new TXtruct(s2x.transform(parserFile),"");
+		} else {
+			txtr = new TXtruct(parserFile,"");
+		}
 		logger.finest(txtr.toNode().toString());
 		PrintStream outFile =
 		outFileName == null ? System.out : new PrintStream( new FileOutputStream(outFileName), true, txtr.outCharset );

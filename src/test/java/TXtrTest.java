@@ -1063,4 +1063,9 @@ public class TXtrTest {
 		TXtruct.main( "txtr2html.txtr", "txtr2html.txtr", out );
 		assertEqualFiles("txtr.html",out);
 	}
+	@Test public void txtrs() throws Exception {
+		String out = "outputs/txtrs.html";
+		TXtruct.main( "txtr2html.txtrs", "txtr2html.txtr", out );
+		assertEqualFiles("txtrs.html",out);
+	}
 }
